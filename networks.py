@@ -1,7 +1,7 @@
 """
 File: networks.py
 Author: Mitchel Bekink
-Date: 11/04/2025
+Date: 15/04/2025
 Description: A selection of nn designs, created to allow easy experimentation
 with different designs within learning algorithms (specifically within a ROS
 environment)

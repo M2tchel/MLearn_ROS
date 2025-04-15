@@ -1,7 +1,7 @@
 """
 File: ppo_alg.py
 Author: Mitchel Bekink
-Date: 11/04/2025
+Date: 15/04/2025
 Description: An implementation of the PPO learning algorithm, designed to be used
 within a ROS environment.
 """
@@ -24,7 +24,7 @@ class PPO:
         self.gamma = 0.95 # The discount rate for future rewards
         self.updates_per_iteration = 3 # The number of nn updates per iteration
         self.clip = 0.2 # Used in the clipping function
-        self.lr = 0.001
+        self.lr = 0.005
         self.nn_design = networks.FeedForwardNN_3 # Neural network design
         self.nn_no_nodes = 64
         self.optimiser = Adam
@@ -158,10 +158,10 @@ class PPO:
             batch_lens.append(ep_t + 1)
             batch_rews.append(ep_rews)
 
-            # Calculate the rewards-to-go for all batch rewards
-            batch_rtgs = self.compute_rtgs(batch_rews)
+        # Calculate the rewards-to-go for all batch rewards
+        batch_rtgs = self.compute_rtgs(batch_rews)
 
-            return batch_obs, batch_acts, batch_log_probs, batch_rtgs, batch_lens
+        return batch_obs, batch_acts, batch_log_probs, batch_rtgs, batch_lens
 
     def get_action(self, obs):
 
@@ -266,7 +266,17 @@ class PPO:
                 self.critic_optim.zero_grad()
                 critic_loss.backward()
                 self.critic_optim.step()
+
+                if(self.epsilon >= 0.05) and (self.current_timestep > 50000):
+                    self.epsilon = self.epsilon / 1.01
+                
+                self.lr = self.lr * (1 - self.current_timestep/total_timesteps)
+                self.actor_optim.param_groups[0]["lr"] = self.lr
+                self.critic_optim.param_groups[0]["lr"] = self.lr
+
         print("Max reward achieved: " + str(self.max_reward) + ", percentage of timesteps where this reward was achieved: " + str(self.times_at_max / self.current_timestep * 100) + "%")
+        self.current_timestep = 0
+        self.times_at_max = 0
 
 # Uncomment to run on GPU (not recommended)
 #torch.cuda.set_device(0)

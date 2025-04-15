@@ -1,7 +1,7 @@
 """
 File: test_environments.py
 Author: Mitchel Bekink
-Date: 11/04/2025
+Date: 15/04/2025
 Description: Contains a range of testing environments made to mimic different
 ROS environments to test learning algorithms without needing to run a full
 simulation.
@@ -23,9 +23,12 @@ class TurtleTest1():
         self.starting_dist = np.hypot(self.current_x - self.goal_x, self.current_y - self.goal_y)
         self.complete = False
         self.fail_rew = -1
-        self.success_rew = 20
+        self.timeout_rew = -50
+        self.success_rew = 200
         self.initialise_board()
         self.current_vals = ()
+        self.current_step = 0
+        self.max_steps = 15
     
     def initialise_board(self):
         # Initialise the self.board (-1=fail, 0=neutral, 1=agent, 2=success)
@@ -59,6 +62,7 @@ class TurtleTest1():
         # Restart the board
         self.initialise_board()
         self.complete = False
+        self.current_step = 0
 
         # Calculate and return the starting observation
         obs = []
@@ -80,8 +84,18 @@ class TurtleTest1():
                 self.current_x -= 1 # Move left
             case 3:
                 self.current_x += 1 # Move right
+        
+        self.current_step += 1
 
         # Case if the agent has failed (moved onto a -1)
+
+        if(self.current_step >= self.max_steps):
+            obs = [0, 0, 0, 0]
+            rew = self.fail_rew
+            self.complete = True
+            self.current_vals = obs, rew, self.complete
+            return self.current_vals
+
         if(self.board[self.current_y][self.current_x] == -1):
             obs = [0, 0, 0, 0]
             rew = self.fail_rew
@@ -118,7 +132,7 @@ class TurtleTest1():
         obs.append(self.board[self.current_y][self.current_x + 1]) # Looking right
 
         # The reward value is the percentage of the distance travelled, multiplied by half the success reward
-        rew = (self.starting_dist - np.hypot(self.current_x - self.goal_x, self.current_y - self.goal_y)) / self.starting_dist * (self.success_rew/2)
+        rew = round((self.starting_dist - np.hypot(self.current_x - self.goal_x, self.current_y - self.goal_y)) / self.starting_dist * (self.success_rew/10) / self.current_step)
 
         self.current_vals = obs, rew, self.complete
         return self.current_vals

@@ -1,7 +1,7 @@
 """
 File: main.py
 Author: Mitchel Bekink
-Date: 11/04/2025
+Date: 15/04/2025
 Description: Main file for running the PPO algorithm with various testing
 environments.
 """
@@ -11,8 +11,8 @@ import test_environments
 import gymnasium as gym
 import time
 
-version_num = "1.0.0"
-last_mod = "11/04/2025"
+version_num = "1.0.1"
+last_mod = "15/04/2025"
 
 def setup(version_num, last_mod):
     print()
@@ -26,25 +26,35 @@ def setup(version_num, last_mod):
     print("Please check GitHub README for references and further resources.\n")
     print("##########################################################################")
     print("##########################################################################\n")
-    time.sleep(3)
+    time.sleep(1)
 
-def run(algorithm_str, environment_str, track_mode, time_steps):
+def learn(algorithm_str, environment_str, track_mode, time_steps):
     if algorithm_str == "PPO":
         if(environment_str == "TurtleTest1"):
-            ppo_alg.PPO(test_environments.TurtleTest1(), 4, 4, track_mode).learn(time_steps)
+            current_network = ppo_alg.PPO(test_environments.TurtleTest1(), 4, 4, track_mode)
+            current_network.learn(time_steps)
         else:
             match environment_str:
                 case "CartPole-v1":
-                    ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),2, 4, track_mode).learn(time_steps)
+                    current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),2, 4, track_mode)
+                    current_network.learn(time_steps)
                 case "MountainCar-v0":
-                    ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 2, track_mode).learn(time_steps)
+                    current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 2, track_mode)
+                    current_network.learn(time_steps)
                 case "Acrobot-v1":
-                    ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 6, track_mode).learn(time_steps)
+                    current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 6, track_mode)
+                    current_network.learn(time_steps)
+    return current_network
+
+def run(network, track_mode, time_steps):
+    network.learn(time_steps)
 
 setup(version_num, last_mod)
 
-# Current available gym test environments are:
+# Current available test environments are:
+# TurtleTest1
 # CartPole-v1
 # MountainCar-v0
 # Acrobot-v1
-run("PPO", "TurtleTest1", 3, 100200)
+current_network = learn("PPO", "TurtleTest1", 3, 100000)
+run(current_network, 2, 100000)
