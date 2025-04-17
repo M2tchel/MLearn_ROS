@@ -1,7 +1,7 @@
 """
 File: test_environments.py
 Author: Mitchel Bekink
-Date: 15/04/2025
+Date: 17/04/2025
 Description: Contains a range of testing environments made to mimic different
 ROS environments to test learning algorithms without needing to run a full
 simulation.
@@ -75,15 +75,14 @@ class TurtleTest1():
 
     def step(self, action):
         # Progresses to the next timestep, performing the passed action
-        match action:
-            case 0:
-                self.current_y -= 1 # Move up
-            case 1:
-                self.current_y += 1 # Move down
-            case 2:
-                self.current_x -= 1 # Move left
-            case 3:
-                self.current_x += 1 # Move right
+        if action == 0:
+            self.current_y -= 1 # Move up
+        elif action == 1:
+            self.current_y += 1 # Move down
+        elif action == 2:
+            self.current_x -= 1 # Move left
+        elif action == 3:
+            self.current_x += 1 # Move right
         
         self.current_step += 1
 
@@ -113,15 +112,14 @@ class TurtleTest1():
         
         # Case if the agent has moved to a neutral space
         # Update the board with the movement
-        match action:
-            case 0:
-                self.board[self.current_y + 1][self.current_x] = 0
-            case 1:
-                self.board[self.current_y - 1][self.current_x] = 0
-            case 2:
-                self.board[self.current_y][self.current_x + 1] = 0
-            case 3:
-                self.board[self.current_y][self.current_x - 1] = 0
+        if action == 0:
+            self.board[self.current_y + 1][self.current_x] = 0
+        elif action == 1:
+            self.board[self.current_y - 1][self.current_x] = 0
+        elif action == 2:
+            self.board[self.current_y][self.current_x + 1] = 0
+        elif action == 3:
+            self.board[self.current_y][self.current_x - 1] = 0
         self.board[self.current_y][self.current_x] = 1
 
         # Calculate the observation after the move
@@ -144,22 +142,21 @@ class TurtleTest1():
             print()
             key = input("AWSD for next move, C to exit: ").upper()
             print()
-            match key:
-                case "C":
-                    print("Exiting...\n")
-                    self.reset()
-                    return
-                case "A":
-                    obs, rew, done = self.step(2)
-                case "W":
-                    obs, rew, done = self.step(0)
-                case "S":
-                    obs, rew, done = self.step(1)
-                case "D":
-                    obs, rew, done = self.step(3)
-                case _:
-                    print("Invalid input, please try again")
-                    print()
+            if key == "C":
+                print("Exiting...\n")
+                self.reset()
+                return
+            elif key == "A":
+                obs, rew, done = self.step(2)
+            elif key =="W":
+                obs, rew, done = self.step(0)
+            elif key =="S":
+                obs, rew, done = self.step(1)
+            elif key =="D":
+                obs, rew, done = self.step(3)
+            else:
+                print("Invalid input, please try again")
+                print()
                 
             print("Current observations: " + str(obs))
             print("Current reward: " + str(rew))

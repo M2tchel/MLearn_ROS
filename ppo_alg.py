@@ -1,7 +1,7 @@
 """
 File: ppo_alg.py
 Author: Mitchel Bekink
-Date: 15/04/2025
+Date: 17/04/2025
 Description: An implementation of the PPO learning algorithm, designed to be used
 within a ROS environment.
 """
@@ -14,6 +14,7 @@ import numpy as np
 import networks
 import test_environments
 from matplotlib import pyplot as plt
+import ppo_ros_controller
 
 class PPO:
     def __init__(self, environment, act_dim, obs_dim, track_mode):
@@ -72,13 +73,13 @@ class PPO:
                 self.current_timestep += 1
 
                 # Save the current observation
-                if(isinstance(obs,tuple)):
+                if(isinstance(obs,tuple)) and (len(obs) < 5):
                     batch_obs.append(torch.tensor(obs[0], dtype=torch.float32))
                 else:
                     batch_obs.append(torch.tensor(obs, dtype=torch.float32))
 
                 # Query the actor for the next action, then run this action
-                if(isinstance(obs,tuple)):
+                if(isinstance(obs,tuple)) and (len(obs) < 5):
                     obs_tensor = torch.tensor(obs[0], dtype=torch.float32)
                 else:
                     obs_tensor = torch.tensor(obs, dtype=torch.float32)
@@ -108,7 +109,7 @@ class PPO:
                     if(rew > self.max_reward):
                         self.max_reward = rew
                         self.times_at_max = 0
-                    elif(rew == self.max_reward):
+                    elif(abs(rew - self.max_reward) >= 0.001):
                         self.times_at_max += 1
 
                 # For environments that support rendering, render 200 timesteps every n timesteps
@@ -120,7 +121,7 @@ class PPO:
                         plt.clf()
                         img = self.env.render()
                         plt.imshow(img)
-                        plt.pause(0.01)
+                        plt.pause(0.001)
                         plt.title("Performance at Timestep: " + str(self.current_timestep))
                         plt.axis('off')
                         plt.draw()
@@ -142,7 +143,7 @@ class PPO:
                     if(rew > self.max_reward):
                         print(self.env.show_info(obs, rew, ep_complete))
                         print("Max Reward Beaten! Currently at: " + str(self.max_reward) + ", at iteration: " + str(self.current_timestep))
-                    elif(rew == self.max_reward):
+                    elif(abs(rew - self.max_reward) >= 0.01):
                         print("Reached Max of: " + str(self.max_reward) + " Again! Count at: " + str(self.times_at_max) + ", at iteration: " + str(self.current_timestep))
 
                 # Save all the data obtained from this timestep

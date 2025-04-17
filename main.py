@@ -1,18 +1,18 @@
+#!/usr/bin/env python3
 """
 File: main.py
 Author: Mitchel Bekink
-Date: 15/04/2025
+Date: 17/04/2025
 Description: Main file for running the PPO algorithm with various testing
 environments.
 """
 
+import rospy
 import ppo_alg
 import test_environments
 import gymnasium as gym
 import time
-
-version_num = "1.0.1"
-last_mod = "15/04/2025"
+import ros_environments
 
 def setup(version_num, last_mod):
     print()
@@ -26,7 +26,7 @@ def setup(version_num, last_mod):
     print("Please check GitHub README for references and further resources.\n")
     print("##########################################################################")
     print("##########################################################################\n")
-    time.sleep(1)
+    time.sleep(2)
 
 def learn(algorithm_str, environment_str, track_mode, time_steps):
     if algorithm_str == "PPO":
@@ -34,27 +34,47 @@ def learn(algorithm_str, environment_str, track_mode, time_steps):
             current_network = ppo_alg.PPO(test_environments.TurtleTest1(), 4, 4, track_mode)
             current_network.learn(time_steps)
         else:
-            match environment_str:
-                case "CartPole-v1":
-                    current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),2, 4, track_mode)
-                    current_network.learn(time_steps)
-                case "MountainCar-v0":
-                    current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 2, track_mode)
-                    current_network.learn(time_steps)
-                case "Acrobot-v1":
-                    current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 6, track_mode)
-                    current_network.learn(time_steps)
+            if environment_str == "CartPole-v1":
+                current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),2, 4, track_mode)
+                current_network.learn(time_steps)
+            elif environment_str == "MountainCar-v0":
+                current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 2, track_mode)
+                current_network.learn(time_steps)
+            elif environment_str == "Acrobot-v1":
+                current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 6, track_mode)
+                current_network.learn(time_steps)
+            elif environment_str == "ROSLidar":
+                current_network = ppo_alg.PPO(ros_environments.ROSLidar(), 5, 362, track_mode)
+                current_network.learn(time_steps)
     return current_network
 
 def run(network, track_mode, time_steps):
     network.learn(time_steps)
 
-setup(version_num, last_mod)
+if __name__ == '__main__':
+    rospy.init_node("main_ppo")
 
-# Current available test environments are:
-# TurtleTest1
-# CartPole-v1
-# MountainCar-v0
-# Acrobot-v1
-current_network = learn("PPO", "TurtleTest1", 3, 100000)
-run(current_network, 2, 100000)
+    rospy.loginfo("Hello from main PPO!")
+
+    rospy.sleep(1.0)
+
+    rospy.loginfo("End of starter bit?")
+
+    if(True):
+
+        version_num = "1.0.2"
+        last_mod = "17/04/2025"
+
+        setup(version_num, last_mod)
+
+        # Current available test environments are:
+        # TurtleTest1
+        # CartPole-v1
+        # MountainCar-v0
+        # Acrobot-v1
+
+        # Current ROS environments are:
+        # ROSLidar
+
+        current_network = learn("PPO", "ROSLidar", 3, 100000)
+        run(current_network, 3, 100000)
