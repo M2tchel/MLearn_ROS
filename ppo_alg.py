@@ -1,7 +1,7 @@
 """
 File: ppo_alg.py
 Author: Mitchel Bekink
-Date: 17/04/2025
+Date: 25/04/2025
 Description: An implementation of the PPO learning algorithm, designed to be used
 within a ROS environment.
 """
@@ -20,17 +20,16 @@ class PPO:
     def __init__(self, environment, act_dim, obs_dim, track_mode):
 
         # Hyperparameter Initialisation:
-        self.timesteps_per_batch = 1000
-        self.timesteps_per_episode = 200
+        self.timesteps_per_batch = 5000
+        self.timesteps_per_episode = 5000
         self.gamma = 0.95 # The discount rate for future rewards
         self.updates_per_iteration = 3 # The number of nn updates per iteration
         self.clip = 0.2 # Used in the clipping function
         self.lr = 0.005
         self.nn_design = networks.FeedForwardNN_3 # Neural network design
-        self.nn_no_nodes = 64
+        self.nn_no_nodes = 512
         self.optimiser = Adam
         self.epsilon = 0.1
-
         # Environment information for nn initialisation
         self.env = environment
         self.obs_dim = obs_dim
@@ -59,6 +58,7 @@ class PPO:
         batch_rews = [] # batch rewards-to-go
         batch_lens = [] # episodic lengths in batch
         batch_t = 0 # Number of timesteps ran in this batch so far
+
 
         # Outer loop for batch control
         while batch_t < self.timesteps_per_batch:
@@ -101,50 +101,8 @@ class PPO:
                 else:
                     ep_complete = ep_terminated
 
-                # Performance Tracking
-                # Log the maximum reward achieved, and print every n timesteps
-                if(self.track_mode >= 1):
-                    if(self.current_timestep % 1000 == 0):
-                        print("Current Timestep: " + str(self.current_timestep) + ", current max value: " + str(self.max_reward))
-                    if(rew > self.max_reward):
-                        self.max_reward = rew
-                        self.times_at_max = 0
-                    elif(abs(rew - self.max_reward) >= 0.001):
-                        self.times_at_max += 1
-
-                # For environments that support rendering, render 200 timesteps every n timesteps
-                if(self.track_mode >= 2 ) and not (isinstance(self.env,test_environments.TurtleTest1)):
-                    if(self.current_timestep % 10000 == 0):
-                        self.playback_count = 200
-                
-                    if self.playback_count > 0:
-                        plt.clf()
-                        img = self.env.render()
-                        plt.imshow(img)
-                        plt.pause(0.001)
-                        plt.title("Performance at Timestep: " + str(self.current_timestep))
-                        plt.axis('off')
-                        plt.draw()
-                        self.playback_count -= 1
-                    elif self.playback_count == 0:
-                        plt.close("all")
-                        self.playback_count -= 1
-                elif(self.track_mode >= 2):
-                    if(self.current_timestep % 10000 == 0):
-                        self.playback_count = 200
-                    if self.playback_count > 0:
-                        print(self.env.render())
-                        self.playback_count -= 1
-                    elif self.playback_count == 0:
-                        self.playback_count -= 1
-
-                # Prints each time a new max reward is achieved or achieved again
-                if(self.track_mode >= 3):
-                    if(rew > self.max_reward):
-                        print(self.env.show_info(obs, rew, ep_complete))
-                        print("Max Reward Beaten! Currently at: " + str(self.max_reward) + ", at iteration: " + str(self.current_timestep))
-                    elif(abs(rew - self.max_reward) >= 0.01):
-                        print("Reached Max of: " + str(self.max_reward) + " Again! Count at: " + str(self.times_at_max) + ", at iteration: " + str(self.current_timestep))
+                if(self.track_mode > 0):
+                    self.log(rew, obs, ep_complete)
 
                 # Save all the data obtained from this timestep
                 ep_rews.append(rew)
@@ -180,7 +138,8 @@ class PPO:
         log_probabilities = F.log_softmax(logits, dim=1)
 
         if (self.epsilon > np.random.rand()): # Explore:
-            action = torch.multinomial(probabilities, num_samples=1)
+            #action = torch.multinomial(probabilities, num_samples=1)
+            action = torch.tensor([[np.random.randint(1, self.act_dim)]])
         else: # Greedy:
             action = torch.argmax(log_probabilities, dim=1, keepdim=True)
         
@@ -275,9 +234,43 @@ class PPO:
                 self.actor_optim.param_groups[0]["lr"] = self.lr
                 self.critic_optim.param_groups[0]["lr"] = self.lr
 
-        print("Max reward achieved: " + str(self.max_reward) + ", percentage of timesteps where this reward was achieved: " + str(self.times_at_max / self.current_timestep * 100) + "%")
-        self.current_timestep = 0
-        self.times_at_max = 0
+        # IMPLEMENT ENDING STATEMENT
+
+    def log(self, rew, obs, ep_complete):
+        # Performance Tracking
+        if(self.current_timestep % 1000 == 0):
+            print("Current Timestep: " + str(self.current_timestep) + ", current max value: " + str(self.max_reward))
+        if(rew > self.max_reward):
+            self.max_reward = rew
+            self.times_at_max = 0
+        elif(abs(rew - self.max_reward) <= 0.001):
+            self.times_at_max += 1
+
+        # Render 200 timesteps every n timesteps
+        if(self.track_mode >= 2):
+            if(self.current_timestep % 10000 == 0):
+                self.playback_count = 200
+                
+            if self.playback_count > 0:
+                plt.clf()
+                img = self.env.render()
+                plt.imshow(img)
+                plt.pause(0.001)
+                plt.title("Performance at Timestep: " + str(self.current_timestep))
+                plt.axis('off')
+                plt.draw()
+                self.playback_count -= 1
+            elif self.playback_count == 0:
+                plt.close("all")
+                self.playback_count -= 1
+
+        # Prints each time a new max reward is achieved or achieved again
+        if(self.track_mode >= 3):
+            if(rew > self.max_reward):
+                print(self.env.show_info(obs, rew, ep_complete))
+                print("Max Reward Beaten! Currently at: " + str(self.max_reward) + ", at iteration: " + str(self.current_timestep))
+            elif(abs(rew - self.max_reward) <= 0.001):
+                print("Reached Max of: " + str(self.max_reward) + " Again! Count at: " + str(self.times_at_max) + ", at iteration: " + str(self.current_timestep))
 
 # Uncomment to run on GPU (not recommended)
 #torch.cuda.set_device(0)

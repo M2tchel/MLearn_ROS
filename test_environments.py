@@ -1,19 +1,20 @@
 """
 File: test_environments.py
 Author: Mitchel Bekink
-Date: 17/04/2025
+Date: 25/04/2025
 Description: Contains a range of testing environments made to mimic different
 ROS environments to test learning algorithms without needing to run a full
 simulation.
 """
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 class TurtleTest1():
     # A simple 5x5 2D coordinate self.board where the agent needs to find the end in
     # as few a moves as possible
 
-    def __init__(self):
+    def __init__(self, log_level):
 
         # Initialise the variables
         self.current_x = 1
@@ -29,6 +30,10 @@ class TurtleTest1():
         self.current_vals = ()
         self.current_step = 0
         self.max_steps = 15
+        self.log_level = log_level
+        self.current_rew = -np.inf
+        self.max_reward = -np.inf + 1
+        self.times_at_max = 0
     
     def initialise_board(self):
         # Initialise the self.board (-1=fail, 0=neutral, 1=agent, 2=success)
@@ -93,6 +98,7 @@ class TurtleTest1():
             rew = self.fail_rew
             self.complete = True
             self.current_vals = obs, rew, self.complete
+            self.current_rew = rew
             return self.current_vals
 
         if(self.board[self.current_y][self.current_x] == -1):
@@ -100,6 +106,7 @@ class TurtleTest1():
             rew = self.fail_rew
             self.complete = True
             self.current_vals = obs, rew, self.complete
+            self.current_rew = rew
             return self.current_vals
 
         # Case if the agent has succeeded (moved onto a 2)
@@ -108,6 +115,7 @@ class TurtleTest1():
             rew = self.success_rew
             self.complete = True
             self.current_vals = obs, rew, self.complete
+            self.current_rew = rew
             return self.current_vals
         
         # Case if the agent has moved to a neutral space
@@ -133,6 +141,7 @@ class TurtleTest1():
         rew = round((self.starting_dist - np.hypot(self.current_x - self.goal_x, self.current_y - self.goal_y)) / self.starting_dist * (self.success_rew/10) / self.current_step)
 
         self.current_vals = obs, rew, self.complete
+        self.current_rew = rew
         return self.current_vals
     
     def manual(self):
@@ -177,3 +186,29 @@ class TurtleTest1():
         output += str(self.board)
         output += "\n"
         return output
+    
+    def log(self):
+        if(self.log_level >= 1):
+            if(self.current_step % 1000 == 0):
+                print("Current Timestep: " + str(self.current_step) + ", current max value: " + str(self.max_reward))
+            if(self.current_rew > self.max_reward):
+                self.max_reward = self.current_rew
+                self.times_at_max = 0
+            elif(abs(self.current_rew - self.max_reward) <= 0.001):
+                self.times_at_max += 1
+
+        if(self.log_level >= 2):
+            if(self.current_step % 10000 == 0):
+                self.playback_count = 200
+            if self.playback_count > 0:
+                print(self.render())
+                self.playback_count -= 1
+            elif self.playback_count == 0:
+                self.playback_count -= 1
+
+        # Prints each time a new max reward is achieved or achieved again
+        if(self.log_level >= 3):
+            if(self.current_rew > self.max_reward):
+                print("Max Reward Beaten! Currently at: " + str(self.max_reward) + ", at step: " + str(self.current_step))
+            elif(abs(self.current_rew - self.max_reward) <= 0.001):
+                print("Reached Max of: " + str(self.max_reward) + " Again! Count at: " + str(self.times_at_max) + ", at step: " + str(self.current_step))

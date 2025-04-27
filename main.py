@@ -2,9 +2,10 @@
 """
 File: main.py
 Author: Mitchel Bekink
-Date: 17/04/2025
+Date: 25/04/2025
 Description: Main file for running the PPO algorithm with various testing
-environments.
+environments. Please not that roscore and a Gazebo simulation with a turtlebot3
+model must already be running before running this script!
 """
 
 import rospy
@@ -31,7 +32,7 @@ def setup(version_num, last_mod):
 def learn(algorithm_str, environment_str, track_mode, time_steps):
     if algorithm_str == "PPO":
         if(environment_str == "TurtleTest1"):
-            current_network = ppo_alg.PPO(test_environments.TurtleTest1(), 4, 4, track_mode)
+            current_network = ppo_alg.PPO(test_environments.TurtleTest1(track_mode), 4, 4, 0)
             current_network.learn(time_steps)
         else:
             if environment_str == "CartPole-v1":
@@ -44,11 +45,12 @@ def learn(algorithm_str, environment_str, track_mode, time_steps):
                 current_network = ppo_alg.PPO(gym.make(environment_str,  render_mode="rgb_array"),3, 6, track_mode)
                 current_network.learn(time_steps)
             elif environment_str == "ROSLidar":
-                current_network = ppo_alg.PPO(ros_environments.ROSLidar(), 5, 362, track_mode)
+                current_network = ppo_alg.PPO(ros_environments.ROSLidar(track_mode), 6, 363, 0)
+                # Note that 362 obs dimension because 360 degrees, then dist from goal, then angle to goal, then bot angle
                 current_network.learn(time_steps)
     return current_network
 
-def run(network, track_mode, time_steps):
+def run(network, time_steps):
     network.learn(time_steps)
 
 if __name__ == '__main__':
@@ -62,8 +64,8 @@ if __name__ == '__main__':
 
     if(True):
 
-        version_num = "1.0.2"
-        last_mod = "17/04/2025"
+        version_num = "1.0.3"
+        last_mod = "25/04/2025"
 
         setup(version_num, last_mod)
 
@@ -76,5 +78,5 @@ if __name__ == '__main__':
         # Current ROS environments are:
         # ROSLidar
 
-        current_network = learn("PPO", "ROSLidar", 3, 100000)
-        run(current_network, 3, 100000)
+        current_network = learn("PPO", "ROSLidar", 4, 1000000)
+        run(current_network, 100000)
