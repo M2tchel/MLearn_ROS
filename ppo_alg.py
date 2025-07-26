@@ -3,7 +3,7 @@ File: ppo_alg.py
 Author: Mitchel Bekink
 Date: 25/04/2025
 Description: An implementation of the PPO learning algorithm, designed to be used
-within a ROS environment.
+within a ROS environment. This is where you can add your own learning algorithms if desired.
 """
 
 import torch
@@ -17,7 +17,9 @@ from matplotlib import pyplot as plt
 import ppo_ros_controller
 
 class PPO:
-    def __init__(self, environment, act_dim, obs_dim, track_mode):
+
+    # It isn't advised to call this method directly, instead use the create() function in main.py!
+    def __init__(self, environment, env_name, network, act_dim, obs_dim, track_mode):
 
         # Hyperparameter Initialisation:
         self.timesteps_per_batch = 5000
@@ -26,18 +28,18 @@ class PPO:
         self.updates_per_iteration = 3 # The number of nn updates per iteration
         self.clip = 0.2 # Used in the clipping function
         self.lr = 0.005
-        self.nn_design = networks.FeedForwardNN_3 # Neural network design
-        self.nn_no_nodes = 512
+        self.nn_design = network # Neural network design
         self.optimiser = Adam
         self.epsilon = 0.1
         # Environment information for nn initialisation
         self.env = environment
+        self.env_name = env_name
         self.obs_dim = obs_dim
         self.act_dim = act_dim
 
         # Initialise the neural networks
-        self.actor = self.nn_design(self.obs_dim, self.act_dim, self.nn_no_nodes)
-        self.critic = self.nn_design(self.obs_dim, 1, self.nn_no_nodes)
+        self.actor = self.nn_design(self.obs_dim, self.act_dim)
+        self.critic = self.nn_design(self.obs_dim, 1)
 
         # Initialise actor/critic optimiser
         self.actor_optim = self.optimiser(self.actor.parameters(), lr=self.lr)
@@ -187,6 +189,11 @@ class PPO:
     def learn(self, total_timesteps):
         t_so_far = 0 # The overall number of timesteps simulated thus far
 
+        try:
+            self.env.set_timesteps(total_timesteps)
+        except:
+            None
+
         while t_so_far < total_timesteps:
             batch_obs, batch_acts, batch_log_probs, batch_rtgs, batch_lens = self.run_batch()
 
@@ -272,6 +279,19 @@ class PPO:
             elif(abs(rew - self.max_reward) <= 0.001):
                 print("Reached Max of: " + str(self.max_reward) + " Again! Count at: " + str(self.times_at_max) + ", at iteration: " + str(self.current_timestep))
 
-# Uncomment to run on GPU (not recommended)
+    def get_env_name(self):
+        return self.env_name
+    
+    def get_models(self):
+        return self.actor, self.critic
+
+    def load(self, actor, critic):
+        self.actor = actor
+        self.critic = critic
+    
+    def get_odometer(self):
+        return self.actor.get_odometer()
+
+# Uncomment to run on GPU
 #torch.cuda.set_device(0)
 #torch.set_default_tensor_type('torch.cuda.FloatTensor')
